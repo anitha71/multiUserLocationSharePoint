@@ -1,6 +1,6 @@
 
 import express, { Express, Request, Response } from 'express'
-import {Socket, Server} from 'socket.io'
+import { Socket, Server } from 'socket.io'
 import cors from 'cors'
 import dotenv from 'dotenv'
 
@@ -41,7 +41,7 @@ io.on('connection', (socket: CustomSocket) => {
     const roomId = Math.random().toString(36).substring(2, 7)
     socket.join(roomId)
     const totalRoomUsers = io.sockets.adapter.rooms.get(roomId)
-    socket.emit('roomCreated', { 
+    socket.emit('roomCreated', {
       roomId,
       position: data.position,
       totalConnectedUsers: Array.from(totalRoomUsers || []),
@@ -50,10 +50,11 @@ io.on('connection', (socket: CustomSocket) => {
     socket.roomId = roomId //  attach roomId to socket
   })
 
-  socket.on('joinRoom', (data: {roomId: string}) => {
+  socket.on('joinRoom', (data: { roomId: string }) => {
 
     // check if room exists
     const roomExists = io.sockets.adapter.rooms.has(data.roomId)
+    console.log(roomExists, 'roomExists');
     if (roomExists) {
       socket.join(data.roomId)
       socket.roomId = data.roomId //  attach roomId to socket
@@ -64,6 +65,8 @@ io.on('connection', (socket: CustomSocket) => {
         const creatorSocket = io.sockets.sockets.get(creatorSocketID) // get socket instance of creator
         if (creatorSocket) {
           const totalRoomUsers = io.sockets.adapter.rooms.get(data.roomId)
+          console.log(totalRoomUsers, 'totalRoomUsers');
+
           creatorSocket.emit('userJoinedRoom', {
             userId: socket.id,
             totalConnectedUsers: Array.from(totalRoomUsers || [])
@@ -81,21 +84,22 @@ io.on('connection', (socket: CustomSocket) => {
       })
     }
   })
-  
+
   socket.on('updateLocation', (data) => {
+    console.log(data, '**DATA***');
     io.emit('updateLocationResponse', data)
   })
- 
+
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`)
 
     const roomId = socket.roomId
-    if(roomId){
+    if (roomId) {
       // if disconnected user is creator, destroy room
-      if(roomCreator.get(roomId) === socket.id){
+      if (roomCreator.get(roomId) === socket.id) {
         // notify users in room that room is destroyed
         const roomUsers = io.sockets.adapter.rooms.get(roomId)
-        if(roomUsers){
+        if (roomUsers) {
           for (const socketId of roomUsers) {
             io.to(`${socketId}`).emit('roomDestroyed', {
               status: 'OK'
@@ -103,14 +107,14 @@ io.on('connection', (socket: CustomSocket) => {
           }
         }
         io.sockets.adapter.rooms.delete(roomId)
-        roomCreator.delete(roomId)    
-      } else{
+        roomCreator.delete(roomId)
+      } else {
         socket.leave(roomId)
         // notify creator that user left room
         const creatorSocketId = roomCreator.get(roomId)
-        if(creatorSocketId){
+        if (creatorSocketId) {
           const creatorSocket = io.sockets.sockets.get(creatorSocketId)
-          if(creatorSocket){
+          if (creatorSocket) {
             creatorSocket.emit('userLeftRoom', {
               userId: socket.id,
               totalConnectedUsers: Array.from(io.sockets.adapter.rooms.get(roomId) || [])
@@ -121,5 +125,5 @@ io.on('connection', (socket: CustomSocket) => {
     }
 
   })
-  
+
 })

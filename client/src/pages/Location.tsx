@@ -1,11 +1,11 @@
-import {useState, useEffect} from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import {useSocket} from '../context/socket'
+import { useSocket } from '../context/socket'
 import Status from '../components/Elements/Status'
 import Map from '../components/Elements/Map'
 import StatusPanel from '../components/Elements/StatusPanel'
 import { SocketStatus, GeolocationPosition } from '../types'
-import {BsFillArrowLeftCircleFill} from 'react-icons/bs'
+import { BsFillArrowLeftCircleFill } from 'react-icons/bs'
 
 type RoomStatus = 'unknown' | 'joined' | 'not-exist'
 
@@ -15,12 +15,14 @@ function Location() {
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('disconnected')
   const [roomStatus, setRoomStatus] = useState<RoomStatus>('unknown')
   const [position, setPosition] = useState<GeolocationPosition | null>(null)
+  const [totalUser1, setTU] = useState<any>([])
+  const [user1, setUser1] = useState<any>('')
 
   useEffect(() => {
     connectSocket()
     setSocketStatus('connecting')
     return () => {
-      if(socket) {
+      if (socket) {
         socket.disconnect()
         setSocketStatus('disconnected')
       }
@@ -29,8 +31,8 @@ function Location() {
 
   useEffect(() => {
 
-    if(socket){      
-      
+    if (socket) {
+
       socket.on('connect', () => {
         setSocketStatus('connected')
         socket.emit('joinRoom', {
@@ -38,8 +40,8 @@ function Location() {
         })
       })
 
-      socket.on('roomJoined', ({status}: {status: string}) => {
-        if(status === 'OK') {
+      socket.on('roomJoined', ({ status }: { status: string }) => {
+        if (status === 'OK') {
           setRoomStatus('joined')
         } else if (status === 'ERROR') {
           setRoomStatus('not-exist')
@@ -48,9 +50,12 @@ function Location() {
         }
       })
 
-      socket.on('updateLocationResponse', ({position}:{position: GeolocationPosition}) => {
-        if(position) {
+      socket.on('updateLocationResponse', (data: any) => {
+        console.log(data, 'DATA()');
+        const { position, totalUser } = data
+        if (position) {
           setPosition(position)
+          setUser1(totalUser)
         }
       })
 
@@ -58,7 +63,7 @@ function Location() {
         setRoomStatus('not-exist')
         socket.disconnect()
       })
-          
+
       socket.on('disconnect', () => {
         setSocketStatus('disconnected')
       })
@@ -70,7 +75,7 @@ function Location() {
     <>
       <section className='pb-3'>
         <article className='bg-slate-600 rounded-md p-3 flex flex-wrap gap-3 justify-between items-center w-full'>
-          <Status locationStatus = {null} socketStatus={socketStatus}/>
+          <Status locationStatus={null} socketStatus={socketStatus} />
           {
             position && (
               <div className='flex gap-2 justify-end text-gray-200'>
@@ -78,7 +83,7 @@ function Location() {
                 <p className='font-bold text-sm'>Lng: <span className='text-lg font-bold'>{position.lng}</span></p>
               </div>
             )
-            }
+          }
         </article>
       </section>
       {
@@ -87,7 +92,7 @@ function Location() {
             {
               position && (
                 <div className='bg-gray-200 rounded-md overflow-hidden'>
-                  <Map location={position}/>
+                  <Map location={position} />
                 </div>
               )
             }
@@ -98,10 +103,10 @@ function Location() {
         {
           socketStatus === 'connecting' && (
             <article className='mt-5'>
-              <StatusPanel 
-                title = "Connecting to server" 
-                subtitle = "Please wait..."
-                status = "loading"
+              <StatusPanel
+                title="Connecting to server"
+                subtitle="Please wait..."
+                status="loading"
               />
             </article>
           )
@@ -109,34 +114,34 @@ function Location() {
         {
           socketStatus === 'error' && (
             <article className='mt-5'>
-              <StatusPanel 
-                title = "Failed to connect to server" 
-                subtitle = "Please try again later" 
-                status = "error"
-                />
+              <StatusPanel
+                title="Failed to connect to server"
+                subtitle="Please try again later"
+                status="error"
+              />
             </article>
           )
         }
-        
+
         {
           socketStatus !== 'connecting' && roomStatus === 'unknown' && (
             <article className='mt-5'>
               <StatusPanel
-                title = "Room is unknown"
-                subtitle = "Please try again later"
-                status = "error"
-              /> 
+                title="Room is unknown"
+                subtitle="Please try again later"
+                status="error"
+              />
             </article>
           )
         }
-        
+
         {
           roomStatus === 'not-exist' && (
             <article className='mt-5'>
               <StatusPanel
-                title = "Room doesn't exist"
-                subtitle = "Enter the correct url"
-                status = "error"
+                title="Room doesn't exist"
+                subtitle="Enter the correct url"
+                status="error"
               />
             </article>
           )
@@ -144,7 +149,7 @@ function Location() {
         {
           roomStatus !== 'joined' && (
             <article className='text-white flex items-center gap-2'>
-              <BsFillArrowLeftCircleFill size={20} className='cursor-pointer' onClick={() => window.open('/', '_self')}/>
+              <BsFillArrowLeftCircleFill size={20} className='cursor-pointer' onClick={() => window.open('/', '_self')} />
               <p className='text-md font-semibold'>Back</p>
             </article>
           )

@@ -1,12 +1,12 @@
-import {useState, useEffect} from 'react'
-import {useSocket} from '../context/socket'
+import { useState, useEffect } from 'react'
+import { useSocket } from '../context/socket'
 import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import StatusPanel from '../components/Elements/StatusPanel'
 import Status from '../components/Elements/Status'
 import Map from '../components/Elements/Map'
 import { GeolocationPosition, SocketStatus, LocationStatus } from '../types'
-import {LuCopy} from 'react-icons/lu'
+import { LuCopy } from 'react-icons/lu'
 
 
 type RoomInfo = {
@@ -16,12 +16,13 @@ type RoomInfo = {
 }
 
 export default function Home() {
-  const {socket, connectSocket} = useSocket()
+  const { socket, connectSocket } = useSocket()
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('disconnected')
   const [locationStatus, setLocationStatus] = useState<LocationStatus>('unknown')
-  const [position, setPosition] = useState<GeolocationPosition | null>(null)
+  const [positionD, setPosition] = useState<any>([])
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null)
   const [roomLink, setRoomLink] = useState<string>('')
+  const [totalUser, setTU] = useState<any>([])
 
 
   function connectToSocketServer() {
@@ -31,13 +32,23 @@ export default function Home() {
 
   useEffect(() => {
     let watchId: number | null = null
-    if('geolocation' in navigator) {
+    if ('geolocation' in navigator) {
       watchId = navigator.geolocation.watchPosition((position) => {
-      setPosition({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude
-      })
-      setLocationStatus('accessed')
+        // setPosition({
+        //   lat: position.coords.latitude,
+        //   lng: position.coords.longitude
+        // })
+        console.log({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+
+        positionD.push({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        })
+        // setPosition(positionD)
+        setLocationStatus('accessed')
       }, (error) => {
         switch (error.code) {
           case error.PERMISSION_DENIED:
@@ -55,31 +66,32 @@ export default function Home() {
         }
       })
       return () => {
-        if(watchId) {
+        if (watchId) {
           navigator.geolocation.clearWatch(watchId)
         }
       }
     }
   }, [])
+  console.log(positionD, '&&&&');
 
   useEffect(() => {
-    if(socket) {
+    if (socket) {
       socket.on('connect', () => {
         setSocketStatus('connected')
-        socket.emit('createRoom', {
-          position
-        })
+        // socket.emit('createRoom', {
+        //   position: positionD
+        // })
       })
 
       socket.on('roomCreated', (data: RoomInfo) => {
         toast.success('You are live!', {
           autoClose: 2000,
-          })
+        })
         setRoomInfo(data)
       })
-      socket.on('userJoinedRoom', (data: {userId: string, totalConnectedUsers: string[]}) => {
+      socket.on('userJoinedRoom', (data: { userId: string, totalConnectedUsers: string[] }) => {
         setRoomInfo((prev) => {
-          if(prev) {
+          if (prev) {
             return {
               ...prev,
               totalConnectedUsers: data.totalConnectedUsers
@@ -92,23 +104,25 @@ export default function Home() {
           autoClose: 2000,
         })
 
-        position && socket.emit('updateLocation', {
-          position
-        })
+        // positionD && socket.emit('updateLocation', {
+        //   position: positionD, totalUser: data.userId
+        // })
+        console.log(data.userId, 'data.totalConnectedUsers');
+
       })
-      socket.on('userLeftRoom', (data: {userId: string, totalConnectedUsers: string[]}) => {
+      socket.on('userLeftRoom', (data: { userId: string, totalConnectedUsers: string[] }) => {
         setRoomInfo((prev) => {
-          if(prev) {
+          if (prev) {
             return {
-                ...prev,
-                totalConnectedUsers: data.totalConnectedUsers
-              }
+              ...prev,
+              totalConnectedUsers: data.totalConnectedUsers
             }
-            return null
-          })
-          toast.info(`${data.userId} left the room`, {
-            autoClose: 2000,
-          })
+          }
+          return null
+        })
+        toast.info(`${data.userId} left the room`, {
+          autoClose: 2000,
+        })
       })
 
       socket.on('disconnect', () => {
@@ -117,23 +131,23 @@ export default function Home() {
     }
   }, [socket])
 
-  useEffect(() => {
-    if(socket) {
-      socket.emit('updateLocation', {
-        position
-      })
-    }
-  }, [position])
+  // useEffect(() => {
+  //   if (socket) {
+  //     socket.emit('updateLocation', {
+  //       position: positionD
+  //     })
+  //   }
+  // }, [positionD])
 
   function stopSharingLocation() {
-      if(socket){
-        socket.disconnect()
-        setSocketStatus('disconnected')
-        setRoomInfo(null)
-        toast.success('You are no longer live!', {
-          autoClose: 2000,
-        })
-      }
+    if (socket) {
+      socket.disconnect()
+      setSocketStatus('disconnected')
+      setRoomInfo(null)
+      toast.success('You are no longer live!', {
+        autoClose: 2000,
+      })
+    }
   }
 
 
@@ -141,27 +155,27 @@ export default function Home() {
     <>
       <section className='pb-3'>
         <article className='bg-slate-600 rounded-md p-3 flex flex-wrap gap-3 justify-between items-center w-full'>
-          <Status locationStatus = {locationStatus} socketStatus={socketStatus}/>
-          {
-            position && (
+          <Status locationStatus={locationStatus} socketStatus={socketStatus} />
+          {/* {
+            positionD && (
               <div className='flex gap-2 justify-end text-gray-200'>
-                <p className='font-bold text-sm'>Lat: <span className='text-lg font-bold'>{position.lat} | </span></p>
-                <p className='font-bold text-sm'>Lng: <span className='text-lg font-bold'>{position.lng}</span></p>
+                <p className='font-bold text-sm'>Lat: <span className='text-lg font-bold'>{positionD.lat} | </span></p>
+                <p className='font-bold text-sm'>Lng: <span className='text-lg font-bold'>{positionD.lng}</span></p>
               </div>
             )
-          }
+          } */}
         </article>
       </section>
       <section className='flex flex-col lg:flex-row gap-4 w-full h-auto'>
-        <article className={`flex flex-col justify-between gap-4 w-full bg-slate-500 px-4 py-6 rounded-xl lg:min-w-[20rem] ${position ? 'lg:max-w-sm' : 'w-full'}`}>
+        <article className={`flex flex-col justify-between gap-4 w-full bg-slate-500 px-4 py-6 rounded-xl lg:min-w-[20rem] lg:max-w-sm`}>
           <div className='flex flex-col gap-3 w-full'>
             {
               socketStatus === 'disconnected' && (
                 <div className='flex flex-col gap-6 items-start w-full'>
-                  <button 
+                  <button
                     className={`${locationStatus === 'accessed' ? 'bg-purple-800' : 'bg-gray-600 cursor-not-allowed'} text-md text-white font-bold py-2 px-4 rounded-md`}
                     onClick={() => {
-                      if(locationStatus === 'accessed') {
+                      if (locationStatus === 'accessed') {
                         connectToSocketServer()
                       } else {
                         toast.error('Please allow location access', {
@@ -170,11 +184,11 @@ export default function Home() {
                       }
                     }}
                     disabled={locationStatus !== 'accessed'}
-                    >Share Location</button>
+                  >Share Location</button>
                   <span className='flex gap-1'>
-                    <input type = "text" value={roomLink} onChange={(e) => setRoomLink(e.target.value)} placeholder = "Enter a link" className='bg-gray-300 rounded-md px-4 py-2 outline-none ring-0 text-md font-medium' />
+                    <input type="text" value={roomLink} onChange={(e) => setRoomLink(e.target.value)} placeholder="Enter a link" className='bg-gray-300 rounded-md px-4 py-2 outline-none ring-0 text-md font-medium' />
                     <button className='bg-yellow-400 text-md text-gray-700 font-bold py-2 px-4 rounded-md' onClick={() => {
-                      if(roomLink){
+                      if (roomLink) {
                         window.open(roomLink, '_self')
                       } else {
                         toast.error('Please enter a link', {
@@ -183,7 +197,7 @@ export default function Home() {
                       }
                     }}>Join</button>
                   </span>
-              </div>
+                </div>
               )
             }
             {
@@ -193,7 +207,7 @@ export default function Home() {
                     <p className='text-md font-bold break-all peer'>{`${window.location.href}location/${roomInfo.roomId}`}</p>
                     <span className='cursor-pointer p-2 rounded-full  hover:bg-gray-200 flex items-center active:animate-ping' onClick={() => {
                       const url = `${window.location.href}location/${roomInfo.roomId}`
-                      navigator.clipboard.writeText(url).then(() =>{
+                      navigator.clipboard.writeText(url).then(() => {
                         toast.info('Copied to clipboard!', {
                           autoClose: 1000,
                         })
@@ -203,7 +217,7 @@ export default function Home() {
                         })
                       })
                     }}>
-                      <LuCopy size=  {16}/>
+                      <LuCopy size={16} />
                     </span>
                   </div>
 
@@ -214,34 +228,34 @@ export default function Home() {
                     </span>
                   </div>
                 </>
-                )
+              )
             }
             {
               socketStatus === 'connecting' && (
                 <article className='mt-5'>
                   <StatusPanel
-                    title = "Connecting to server" 
-                    subtitle = "Please wait..."
-                    status = "loading"
+                    title="Connecting to server"
+                    subtitle="Please wait..."
+                    status="loading"
                   />
                 </article>
               )
             }
           </div>
           {
-            socketStatus === 'connected' &&  roomInfo && (
-            <div className='w-full flex justify-center'>
-              <div>
-                <button className='bg-red-600 text-xl text-white font-bold py-2 px-6 rounded-full' onClick={stopSharingLocation}>Stop Sharing</button>
+            socketStatus === 'connected' && roomInfo && (
+              <div className='w-full flex justify-center'>
+                <div>
+                  <button className='bg-red-600 text-xl text-white font-bold py-2 px-6 rounded-full' onClick={stopSharingLocation}>Stop Sharing</button>
+                </div>
               </div>
-            </div>
             )
           }
         </article>
         {
-          position && (
+          positionD.length > 0 && (
             <article className='bg-gray-200 rounded-md overflow-hidden w-full'>
-              <Map location={position}/>
+              <Map location={positionD} />
             </article>
           )
         }
